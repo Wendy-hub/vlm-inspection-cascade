@@ -19,14 +19,20 @@ Key findings (held-out half of the VisA test set):
 1. **The VLM's verdict is biased towards "normal"; its confidence is unusable.** Inside the review band
    it calls only 12-34% of real defects defective, and its self-reported confidence takes 2-3 distinct
    values. The probability of the `"true"` token is a usable score instead.
-2. **Detector-guided zoom is the tool that matters.** Separation of defects from normal parts inside the
+2. **It saves work mostly by confirming clear defects.** Of the 61 review-band parts the hybrid
+   (`zoom_ref_heat`) decides without a human, 55 are rejections (49 defects, 6 false alarms) and only 6 are
+   passes; no defect is passed. The VLM answered "normal" for 146 of the 222 defects in the band, and the
+   P(defect) threshold sent every one of them to a human.
+3. **Detector-guided zoom is the tool that matters.** Separation of defects from normal parts inside the
    review band (AUROC of P(defect)) goes from 0.60 (full image) to **0.69** with two crops cut at the
    detector's heatmap peaks, above the detector's own 0.64 there. Reference images and the heatmap overlay
    add no further separation (0.65-0.67).
-3. **Use it per product line.** The VLM beats the detector on appearance defects (candle 0.81 -> 0.92,
+4. **Use it per product line.** The VLM beats the detector on appearance defects (candle 0.81 -> 0.92,
    capsules 0.62 -> 0.74) but is worse on dense PCB structure (pcb2 0.85 -> 0.70, pcb4 0.99 -> 0.86).
-4. **Cost.** Stage 1 runs at 34 ms per image. The VLM reviews only the 41.6% review band: 0.6-0.9 s per
+5. **Cost.** Stage 1 runs at 34 ms per image. The VLM reviews only the 41.6% review band: 0.6-0.9 s per
    image one at a time on an A100, 3-9 images/s batched.
+
+![One random example of each reviewer decision](docs/fig_examples.jpg)
 
 ## Why this setup
 
@@ -103,7 +109,9 @@ Here `p` is P(defect), the probability of the `"true"` token in the reviewer's J
 ![reviewer ablation](docs/fig_reviewer_ablation.png)
 
 Per-category separation inside the band: [docs/per_category_review_auroc.csv](docs/per_category_review_auroc.csv).
-Example decisions (caught, cleared, missed, false alarm): [docs/gallery_zoom_ref_heat.html](docs/gallery_zoom_ref_heat.html).
+More examples, grouped by the VLM's yes/no answer rather than the hybrid decision:
+[docs/gallery_zoom_ref_heat.html](docs/gallery_zoom_ref_heat.html) (GitHub shows HTML as source; download it
+and open it in a browser).
 Full tables: [docs/results.md](docs/results.md).
 
 ### Stage 1 (PatchCore, image AUROC on the full test set)
@@ -143,12 +151,13 @@ bash scripts/run_py.sh src/build_band.py          # thresholds on calib, three-w
 CUDA_VISIBLE_DEVICES=1 bash scripts/serve_vlm.sh  # vLLM on port 8901, in another tmux window
 bash scripts/run_py.sh src/vlm_review.py          # 4 reviewer variants x 900 images (~15 min on one GPU)
 bash scripts/run_py.sh src/evaluate.py            # tables + figures in outputs/cascade/
+bash scripts/run_py.sh src/example_figure.py      # one example per hybrid decision (fig_examples.jpg)
 bash scripts/run_py.sh src/gallery.py --variant zoom_ref_heat
 ```
 
 ## Data and model licences
 
 VisA (Amazon): CC BY 4.0 per the [AWS Open Data registry](https://registry.opendata.aws/visa)
-(some sources list CC BY-NC-SA 4.0). The example images in `docs/gallery_zoom_ref_heat.html` come from
-VisA and are shown for non-commercial research. Qwen2.5-VL-7B-Instruct: Apache 2.0. No datasets or model
+(some sources list CC BY-NC-SA 4.0). The example images in `docs/fig_examples.jpg` and
+`docs/gallery_zoom_ref_heat.html` come from VisA and are shown for non-commercial research. Qwen2.5-VL-7B-Instruct: Apache 2.0. No datasets or model
 weights are stored in this repository.

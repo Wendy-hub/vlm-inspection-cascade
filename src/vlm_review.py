@@ -73,13 +73,19 @@ def find_peaks(amap: np.ndarray, k: int = 2, radius: int = 40) -> list[tuple[int
     return peaks
 
 
-def crop_at(img: Image.Image, peak: tuple[int, int], grid: tuple[int, int], frac: float = 0.3) -> Image.Image:
-    """Square crop (side = frac * short side) centred on a heatmap peak, kept inside the image."""
-    w, h = img.size
+def crop_box(size: tuple[int, int], peak: tuple[int, int], grid: tuple[int, int],
+             frac: float = 0.3) -> tuple[int, int, int]:
+    """(x0, y0, side) of a square crop (side = frac * short side) centred on a heatmap peak, kept inside the image."""
+    w, h = size
     side = int(frac * min(w, h))
     cx, cy = peak[1] * w / grid[1], peak[0] * h / grid[0]
     x0 = int(min(max(cx - side / 2, 0), w - side))
     y0 = int(min(max(cy - side / 2, 0), h - side))
+    return x0, y0, side
+
+
+def crop_at(img: Image.Image, peak: tuple[int, int], grid: tuple[int, int], frac: float = 0.3) -> Image.Image:
+    x0, y0, side = crop_box(img.size, peak, grid, frac)
     return img.crop((x0, y0, x0 + side, y0 + side)).resize((CROP_SIDE, CROP_SIDE), Image.BICUBIC)
 
 
