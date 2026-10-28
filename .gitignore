@@ -1,0 +1,17 @@
+# Local-only files: machine-specific paths and personal notes
+scripts/env.local.sh
+_private/
+
+# Data, model weights, and run outputs stay on the server
+datasets/
+models/
+outputs/
+*.ckpt
+*.pt
+*.pth
+*.safetensors
+
+# Python
+__pycache__/
+*.pyc
+.venv/
